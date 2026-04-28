@@ -7,6 +7,8 @@ export function useGoogleAuth() {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // 以前に連携済みかどうか（再接続ボタン表示用）
+  const [wasAuthed, setWasAuthed] = useState(() => Boolean(localStorage.getItem(AUTO_AUTH_KEY)));
   const tokenClientRef = useRef(null);
   const expiresAtRef = useRef(null);
 
@@ -20,7 +22,7 @@ export function useGoogleAuth() {
         callback: (response) => {
           setLoading(false);
           if (response.error) {
-            // サイレント再認証失敗は無視（手動ボタンを表示するだけ）
+            // interaction_required = ユーザー操作が必要（サイレント失敗は無視）
             if (response.error !== 'interaction_required') {
               setError(response.error);
             }
@@ -29,33 +31,30 @@ export function useGoogleAuth() {
           setAccessToken(response.access_token);
           expiresAtRef.current = Date.now() + response.expires_in * 1000;
           localStorage.setItem(AUTO_AUTH_KEY, '1');
+          setWasAuthed(true);
           setError(null);
         },
       });
-
-      // 以前に連携済みなら自動でサイレント再接続を試みる
-      if (localStorage.getItem(AUTO_AUTH_KEY)) {
-        tokenClientRef.current.requestAccessToken({ prompt: '' });
-      }
     }
 
     if (window.google?.accounts?.oauth2) {
       initClient();
     } else {
       const script = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
-      if (script) {
-        script.addEventListener('load', initClient);
-      }
+      if (script) script.addEventListener('load', initClient);
     }
   }, []);
 
+  // ユーザー操作から呼ばれる（ポップアップ許可に必要）
   function signIn() {
     if (!tokenClientRef.current) {
-      setError('Google認証の初期化に失敗しました。Client IDを確認してください。');
+      setError('Google認証を初期化できませんでした');
       return;
     }
     setLoading(true);
-    tokenClientRef.current.requestAccessToken({ prompt: '' });
+    // 一度許可済みなら prompt:'' でポップアップなし再接続
+    const prompt = wasAuthed ? '' : '';
+    tokenClientRef.current.requestAccessToken({ prompt });
   }
 
   function signOut() {
@@ -65,6 +64,7 @@ export function useGoogleAuth() {
     setAccessToken(null);
     expiresAtRef.current = null;
     localStorage.removeItem(AUTO_AUTH_KEY);
+    setWasAuthed(false);
     setError(null);
   }
 
@@ -93,7 +93,9 @@ export function useGoogleAuth() {
     return null;
   }
 
-  const hasClientId = Boolean(GOOGLE_CLIENT_ID);
-
-  return { accessToken, loading, error, signIn, signOut, getValidToken, hasClientId };
+  return {
+    accessToken, loading, error, wasAuthed,
+    signIn, signOut, getValidToken,
+    hasClientId: Boolean(GOOGLE_CLIENT_ID),
+  };
 }

@@ -12,10 +12,10 @@ import SyncSettings, { loadPat } from './components/SyncSettings';
 
 export default function App() {
   const { date, goNext, goPrev, goToday } = useCurrentDay();
-  const { accessToken, loading: authLoading, error: authError, signIn, signOut, getValidToken, hasClientId } = useGoogleAuth();
+  const { accessToken, loading: authLoading, error: authError, wasAuthed, signIn, signOut, getValidToken, hasClientId } = useGoogleAuth();
 
   const [pat, setPat] = useState(loadPat);
-  const { addEvent, updateEvent, deleteEvent, getForDate, syncStatus } = useLocalEvents(pat);
+  const { addEvent, updateEvent, deleteEvent, getForDate, syncStatus, syncError } = useLocalEvents(pat);
   const { events: gcalEvents, loading: gcalLoading } = useCalendarEvents(date, getValidToken, Boolean(accessToken));
 
   const [modal, setModal] = useState(null);
@@ -79,6 +79,7 @@ export default function App() {
       <div className="flex-shrink-0 border-t border-gray-200 bg-white px-4 py-2">
         <AuthButton
           accessToken={accessToken}
+          wasAuthed={wasAuthed}
           loading={authLoading}
           error={authError}
           signIn={signIn}
@@ -99,6 +100,7 @@ export default function App() {
       {showSettings && (
         <SyncSettings
           syncStatus={syncStatus}
+          syncError={syncError}
           onPatChange={setPat}
           onClose={() => setShowSettings(false)}
         />

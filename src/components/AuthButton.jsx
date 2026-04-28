@@ -1,4 +1,4 @@
-export default function AuthButton({ accessToken, loading, error, signIn, signOut, hasClientId }) {
+export default function AuthButton({ accessToken, wasAuthed, loading, error, signIn, signOut, hasClientId }) {
   if (!hasClientId) {
     return (
       <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
@@ -12,37 +12,61 @@ export default function AuthButton({ accessToken, loading, error, signIn, signOu
     return (
       <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+          <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
           <span className="text-xs text-green-700 font-medium">Googleカレンダー連携中</span>
         </div>
-        <button
-          onClick={signOut}
-          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-        >
+        <button onClick={signOut} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
           解除
         </button>
       </div>
     );
   }
 
+  // 以前に連携済み → 1タップ再接続ボタン
+  if (wasAuthed) {
+    return (
+      <div className="space-y-1">
+        <button
+          onClick={signIn}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
+        >
+          {loading
+            ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            : <CalendarIcon />
+          }
+          1タップでGoogleカレンダーに再接続
+        </button>
+        {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+      </div>
+    );
+  }
+
+  // 未連携
   return (
     <div className="space-y-1">
       <button
         onClick={signIn}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm disabled:opacity-60"
+        className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60"
       >
-        {loading ? (
-          <span className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>
-        ) : (
-          <GoogleIcon />
-        )}
+        {loading
+          ? <span className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+          : <GoogleIcon />
+        }
         Googleカレンダーと連携
       </button>
-      {error && (
-        <p className="text-xs text-red-500 text-center">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 text-center">{error}</p>}
     </div>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
   );
 }
 
